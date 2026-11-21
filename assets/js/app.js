@@ -30,7 +30,7 @@ const ICO={
 /* ===== estado ===== */
 const S={view:'home',arg:null,stack:[],tab:'resumo',sem:'2026.2',query:'',minutes:25,sheet:false,toast:'',loading:false,error:null,
   sim:{slow:false,err:false},draft:'',savedDraft:false,
-  test:{mode:'intro',name:'',idx:-1,t0:0,taps:0,miss:0,views:new Set(),log:[],cur:null,done:false,rate:0,comment:'',answer:'',stage:'task'},
+  test:{mode:'intro',name:'',sessionId:'',sent:false,idx:-1,t0:0,taps:0,miss:0,views:new Set(),log:[],cur:null,done:false,rate:0,comment:'',answer:'',stage:'task'},
   timers:{}};
 const TASKS=[
  {id:'T1',text:'Descubra quantas faltas você tem em Redes de Computadores.',ask:true,start:()=>go('home',null,true)},
@@ -209,7 +209,7 @@ $('screen').addEventListener('input',e=>{
 /* ===== teste de usabilidade ===== */
 function curTask(){return TASKS[S.test.idx]}
 function startTask(i){
-  const T=S.test;T.mode='task';T.idx=i;T.stage='task';T.t0=Date.now();T.taps=0;T.miss=0;T.views=new Set(['home']);T.rate=0;T.comment='';T.answer='';T.cur={outcome:null};
+  const T=S.test;if(i===0){T.sessionId=`${Date.now()}-${Math.random().toString(36).slice(2)}`;T.sent=false}T.mode='task';T.idx=i;T.stage='task';T.t0=Date.now();T.taps=0;T.miss=0;T.views=new Set(['home']);T.rate=0;T.comment='';T.answer='';T.cur={outcome:null};
   S.sheet=false;S.toast='';TASKS[i].start();clearInterval(S.timers.tick);S.timers.tick=setInterval(tick,1000);updateSide();
 }
 function tick(){const el=$('tm');if(!el||S.test.mode!=='task')return;const s=Math.floor((Date.now()-S.test.t0)/1000);el.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');el.style.color=s>120?'var(--bad-fg)':'';}
@@ -233,7 +233,7 @@ function saveTask(){
   if(T.idx+1<TASKS.length)startTask(T.idx+1);else{T.mode='done';clearInterval(S.timers.tick);S.sheet=false;go('home',null,true)}
   updateSide();
 }
-function persist(){try{localStorage.setItem('sigaa-proto-resultados',JSON.stringify({nome:S.test.name,log:S.test.log}))}catch(_){}}
+function persist(){try{localStorage.setItem('sigaa-proto-resultados',JSON.stringify({nome:S.test.name,sessionId:S.test.sessionId,log:S.test.log,sent:S.test.sent}))}catch(_){}}
 function summaryText(){
   const T=S.test;
   let s=`SIGAA Mobile · teste de usabilidade\nParticipante: ${T.name||'(sem nome)'}\nData: ${new Date().toLocaleString('pt-BR')}\n\n`;
@@ -289,13 +289,31 @@ function showIntro(){
   $('go1').onclick=()=>{S.test.name=$('nm').value.trim();$('modal').innerHTML='';S.test.log=[];startTask(0)};
   $('go2').onclick=()=>{S.test.name=$('nm').value.trim();$('modal').innerHTML='';S.test.mode='free';updateSide()};
 }
+async function sendResultsToSheet(){
+  const endpoint=String(window.SIGAA_SHEETS_ENDPOINT||'').trim();
+  const status=$('sheet-status'),button=$('send-sheet');
+  if(!endpoint){status.textContent='Integra\u00e7\u00e3o ainda n\u00e3o configurada. Veja as instru\u00e7\u00f5es do README.';return}
+  if(S.test.sent){status.textContent='Este teste j\u00e1 foi enviado.';return}
+  if(!S.test.log.length){status.textContent='N\u00e3o h\u00e1 respostas para enviar.';return}
+  button.disabled=true;status.textContent='Enviando respostas...';
+  try{
+    await fetch(endpoint,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({sessionId:S.test.sessionId,name:S.test.name,tasks:S.test.log})});
+    S.test.sent=true;persist();button.textContent='Envio solicitado';
+    status.textContent='Solicita\u00e7\u00e3o enviada. Confira a planilha; o navegador n\u00e3o consegue confirmar a grava\u00e7\u00e3o.';
+  }catch(error){
+    button.disabled=false;status.textContent='N\u00e3o foi poss\u00edvel enviar. Verifique a conex\u00e3o e tente novamente.';
+  }
+}
+
 function showResults(){
   const T=S.test,rows=T.log.map(r=>`<tr><td><b>${r.id}</b></td><td>${esc(r.resultado)}</td><td>${r.segundos}s</td><td>${r.toques} (${r.toquesSemResposta})</td><td>${r.telas}</td><td>${r.nota||'-'}</td></tr>${r.comentario||r.resposta?`<tr><td></td><td colspan="5" class="muted">${r.resposta?`Respondeu ${esc(r.resposta)} faltas. `:''}${esc(r.comentario)}</td></tr>`:''}`).join('');
   $('modal').innerHTML=`<div class="modal"><div class="card"><h2>Resultados</h2><p class="muted">Participante: ${esc(T.name||'(sem nome)')}</p>
   ${T.log.length?`<div class="scroll-x"><table><thead><tr><th>Tarefa</th><th>Resultado</th><th>Tempo</th><th>Toques (sem resposta)</th><th>Telas</th><th>Nota</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p>Nenhuma tarefa registrada ainda.</p>'}
   <p class="muted" style="font-size:13px">“Toques sem resposta” são toques em áreas que não fazem nada. Eles indicam onde o usuário esperava um controle.</p>
-  <div class="row"><button class="btn pri" id="cp">Copiar resumo</button><button class="btn" id="cl">Fechar</button></div><p id="cpm" class="muted" style="font-size:13px;min-height:18px"></p>
+  <p class="muted" style="font-size:12px">Ao enviar, o nome (se informado), as respostas, notas, coment\u00e1rios, tempos e toques deste teste ser\u00e3o gravados na planilha do grupo.</p>
+  <div class="row"><button class="btn pri" id="send-sheet" ${T.sent?'disabled':''}>${T.sent?'Envio solicitado':'Enviar para planilha'}</button><button class="btn" id="cp">Copiar resumo</button><button class="btn" id="cl">Fechar</button></div><p id="sheet-status" class="muted" role="status" style="font-size:13px;min-height:18px">${T.sent?'Envio solicitado. Confira a planilha.':''}</p><p id="cpm" class="muted" style="font-size:13px;min-height:18px"></p>
   <textarea id="tx" rows="6" readonly style="font-size:12px">${esc(summaryText())}</textarea></div></div>`;
+  $('send-sheet').onclick=sendResultsToSheet;
   $('cl').onclick=()=>{$('modal').innerHTML=''};
   $('cp').onclick=()=>{const t=$('tx');t.select();let ok=false;try{navigator.clipboard.writeText(t.value).then(()=>{$('cpm').textContent='Resumo copiado. Envie ao grupo.'},()=>{$('cpm').textContent='Selecione o texto abaixo e copie.'});ok=true}catch(_){}if(!ok)$('cpm').textContent='Selecione o texto abaixo e copie.'};
 }
