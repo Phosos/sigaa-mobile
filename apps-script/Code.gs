@@ -1,16 +1,16 @@
 const SPREADSHEET_ID = '1-YiZe5PvS5aHGzGG9yfcX4GV8bUO3qbeZMQbRYrTwzA';
 const SHEET_NAME = 'Respostas';
-const CONSENT_VERSION = '2026-11-21-v2';
+const CONSENT_VERSION = '2026-11-21-v3';
 const HEADERS = [
   'session_id', 'enviado_em', 'participante', 'tarefa_id', 'tarefa',
   'resultado', 'segundos', 'toques', 'toques_sem_resposta', 'telas',
-  'nota_facilidade', 'resposta', 'comentario', 'consent_at', 'consent_version', 'participant_code_hash'
+  'nota_facilidade', 'resposta', 'comentario', 'consent_at', 'consent_version'
 ];
 
 function doPost(e) {
   try {
     const payload = JSON.parse(e && e.postData ? e.postData.contents : '{}');
-    if (!payload.sessionId || !payload.participantCode || !payload.consentAt || isNaN(Date.parse(payload.consentAt)) || payload.consentVersion !== CONSENT_VERSION || !Array.isArray(payload.tasks) || payload.tasks.length === 0 || payload.tasks.length > 20) {
+    if (!payload.sessionId || !payload.name || !payload.consentAt || isNaN(Date.parse(payload.consentAt)) || payload.consentVersion !== CONSENT_VERSION || !Array.isArray(payload.tasks) || payload.tasks.length === 0 || payload.tasks.length > 20) {
       return json_({ ok: false, error: 'invalid_payload' });
     }
 
@@ -31,22 +31,16 @@ function doPost(e) {
       if (values.slice(1).some(row => String(row[0]) === String(payload.sessionId))) {
         return json_({ ok: true, duplicate: true });
       }
-      const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
-      const codeHashColumn = headers.indexOf('participant_code_hash');
-      const participantCodeHash = hashParticipantCode_(payload.participantCode);
-      if (codeHashColumn >= 0 && values.slice(1).some(row => String(row[codeHashColumn]) === participantCodeHash)) {
-        return json_({ ok: false, error: 'participant_code_already_used' });
-      }
-
       const timestamp = new Date();
+      const participant = safeText_(payload.name, 120);
       const rows = payload.tasks.map(task => [
-        safeText_(payload.sessionId, 100), timestamp, '',
+        safeText_(payload.sessionId, 100), timestamp, participant,
         safeText_(task.id, 20), safeText_(task.tarefa, 500),
         safeText_(task.resultado, 100), safeNumber_(task.segundos),
         safeNumber_(task.toques), safeNumber_(task.toquesSemResposta),
         safeNumber_(task.telas), safeNumber_(task.nota),
         safeText_(task.resposta, 200), safeText_(task.comentario, 2000),
-        safeText_(payload.consentAt, 40), safeText_(payload.consentVersion, 30), participantCodeHash
+        safeText_(payload.consentAt, 40), safeText_(payload.consentVersion, 30)
       ]);
       sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, HEADERS.length).setValues(rows);
       return json_({ ok: true, rows: rows.length });
@@ -56,12 +50,6 @@ function doPost(e) {
   } catch (error) {
     return json_({ ok: false, error: String(error && error.message || error) });
   }
-}
-
-function hashParticipantCode_(code) {
-  const normalized = String(code).trim().toUpperCase();
-  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, normalized, Utilities.Charset.UTF_8);
-  return bytes.map(byte => ('0' + ((byte + 256) % 256).toString(16)).slice(-2)).join('');
 }
 
 function safeText_(value, maxLength) {

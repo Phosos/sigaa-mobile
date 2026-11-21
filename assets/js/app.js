@@ -30,7 +30,7 @@ const ICO={
 /* ===== estado ===== */
 const S={view:'home',arg:null,stack:[],tab:'resumo',sem:'2026.2',query:'',minutes:25,sheet:false,toast:'',loading:false,error:null,
   sim:{slow:false,err:false},draft:'',savedDraft:false,
-  test:{mode:'intro',participantCode:'',consentAt:'',consentVersion:'2026-11-21-v2',sessionId:'',sent:false,sending:false,idx:-1,t0:0,taps:0,miss:0,views:new Set(),log:[],cur:null,done:false,rate:0,comment:'',answer:'',stage:'task'},
+  test:{mode:'intro',name:'',consentAt:'',consentVersion:'2026-11-21-v3',sessionId:'',sent:false,sending:false,idx:-1,t0:0,taps:0,miss:0,views:new Set(),log:[],cur:null,done:false,rate:0,comment:'',answer:'',stage:'task'},
   timers:{}};
 const TASKS=[
  {id:'T1',text:'Descubra quantas faltas você tem em Redes de Computadores.',ask:true,start:()=>go('home',null,true)},
@@ -233,10 +233,10 @@ function saveTask(){
   if(T.idx+1<TASKS.length)startTask(T.idx+1);else{T.mode='done';clearInterval(S.timers.tick);S.sheet=false;go('home',null,true)}
   updateSide();
 }
-function persist(){try{localStorage.setItem('sigaa-proto-resultados',JSON.stringify({consentAt:S.test.consentAt,consentVersion:S.test.consentVersion,sessionId:S.test.sessionId,log:S.test.log,sent:S.test.sent}))}catch(_){}}
+function persist(){try{localStorage.setItem('sigaa-proto-resultados',JSON.stringify({nome:S.test.name,consentAt:S.test.consentAt,consentVersion:S.test.consentVersion,sessionId:S.test.sessionId,log:S.test.log,sent:S.test.sent}))}catch(_){}}
 function summaryText(){
   const T=S.test;
-  let s=`SIGAA Mobile · teste de usabilidade\nData: ${new Date().toLocaleString('pt-BR')}\n\n`;
+  let s=`SIGAA Mobile · teste de usabilidade\nParticipante: ${T.name||'(sem nome)'}\nData: ${new Date().toLocaleString('pt-BR')}\n\n`;
   T.log.forEach(r=>{s+=`${r.id} · ${r.resultado} · ${r.segundos}s · ${r.toques} toques (${r.toquesSemResposta} sem resposta) · ${r.telas} telas · facilidade ${r.nota||'-'}/5${r.resposta?` · respondeu ${r.resposta} faltas`:''}${r.comentario?`\n   Comentário: ${r.comentario}`:''}\n`});
   return s}
 function esc2(x){return esc(x)}
@@ -252,7 +252,7 @@ function updateSide(){
     else if(T.stage==='answer')main=`<div class="card"><span class="task-n">Tarefa ${T.idx+1} · resposta</span><div class="task-t">Quantas faltas você tem em Redes de Computadores?</div><div class="row" style="flex-wrap:nowrap"><input id="ans" type="number" min="0" max="60" inputmode="numeric" placeholder="Número de faltas" value="${esc(T.answer)}"><button class="btn pri" data-side="ans">Confirmar</button></div></div>`;
     else main=`<div class="card"><span class="task-n">Tarefa ${T.idx+1} · ${T.cur.outcome==='sucesso'?'concluída ✓':T.cur.outcome==='desistiu'?'encerrada':'registrada'}</span><div class="task-t">Quão fácil foi essa tarefa?</div><div class="stars" role="group" aria-label="Facilidade de 1 a 5">${[1,2,3,4,5].map(n=>`<button data-side="star" data-n="${n}" aria-pressed="${T.rate===n}">${n}</button>`).join('')}</div><div class="row" style="justify-content:space-between;font-size:12px;margin:6px 0 12px" ><span class="muted">1 · muito difícil</span><span class="muted">5 · muito fácil</span></div><textarea id="cm" rows="2" placeholder="O que foi mais fácil e o que foi mais difícil? (opcional)">${esc(T.comment)}</textarea><div class="row" style="margin-top:10px"><button class="btn pri" data-side="next" ${T.rate?'':'disabled style="opacity:.5"'}>${T.idx+1<TASKS.length?'Próxima tarefa':'Ver resultados'}</button></div></div>`;
   }else if(T.mode==='done'){
-    main=`<div class="card"><span class="task-n">Teste concluído</span><div class="task-t">Obrigado por participar!</div><div class="row"><button class="btn pri" data-side="results">Ver resultados</button><button class="btn" data-side="restart">Refazer</button></div></div>`;
+    main=`<div class="card"><span class="task-n">Teste concluído</span><div class="task-t">Obrigado, ${esc(T.name||'participante')}!</div><div class="row"><button class="btn pri" data-side="results">Ver resultados</button><button class="btn" data-side="restart">Refazer</button></div></div>`;
   }else if(T.mode==='free'){
     main=`<div class="card"><span class="task-n">Exploração livre</span><div class="task-t">Navegue à vontade pelo protótipo.</div><button class="btn pri" data-side="start">Começar o teste com tarefas</button></div>`;
   }
@@ -271,7 +271,7 @@ $('side').addEventListener('click',e=>{
    case'star':T.rate=+b.dataset.n;T.comment=$('cm')?$('cm').value:T.comment;updateSide();break;
    case'next':T.comment=$('cm')?$('cm').value:'';saveTask();if(T.mode==='done'){showResults();sendResultsToSheet()}break;
    case'results':showResults();break;
-   case'restart':T.log=[];startTask(0);break;
+   case'restart':T.log=[];T.name=T.name;startTask(0);break;
    case'start':T.log=[];startTask(0);break;
    case'sess':S.sheet=true;render();break;
   }
@@ -283,21 +283,21 @@ function showIntro(){
   $('modal').innerHTML=`<div class="modal"><div class="card"><div class="brand" style="margin-bottom:12px"><div class="logo">S</div><b>SIGAA Mobile</b></div><h2>Teste de usabilidade</h2>
   <p>Este prot&#243;tipo foi desenvolvido para a disciplina de IHC (Intera&#231;&#227;o Humano-Computador), por um grupo de Sistemas de Informa&#231;&#227;o, para explorar melhorias na interface de m&#243;dulos do SIGAA. As telas e informa&#231;&#245;es exibidas s&#227;o fict&#237;cias; as respostas e m&#233;tricas deste teste s&#227;o reais. Voc&#234; far&#225; 4 tarefas curtas. Estamos avaliando o prot&#243;tipo, n&#227;o voc&#234;.</p>
   <p>Integrantes: Gustavo Gev&#250;, Lucas Francisco, Nicolas Moreno e Pedro Costa.</p>
-  <p>O grupo fornecer&#225; um c&#243;digo de participante aleat&#243;rio e de uso &#250;nico para reduzir respostas repetidas. N&#227;o informe seu nome ou apelido. Coletamos o c&#243;digo, respostas, notas, coment&#225;rios e m&#233;tricas de uso (tempo, toques e quantidade de telas visitadas). A planilha guarda apenas um hash do c&#243;digo para impedir seu uso novamente, sem guardar o c&#243;digo em si. O c&#243;digo funciona como pseud&#244;nimo, n&#227;o como anonimiza&#231;&#227;o; o grupo n&#227;o deve manter uma lista que ligue c&#243;digos a nomes. Os dados tamb&eacute;m ficam salvos localmente neste navegador e, ao concluir as tarefas, s&#227;o enviados automaticamente &#224; planilha Google vinculada ao projeto para an&#225;lise acad&#234;mica de usabilidade. N&#227;o informe dados sens&#237;veis nos coment&#225;rios. N&#227;o coletamos senha nem dados de acesso ao SIGAA.</p>
-  <label for="participant-code" style="font-weight:600;display:block;margin:12px 0 6px">C&#243;digo de participante fornecido pelo grupo (obrigat&#243;rio)</label><input id="participant-code" type="text" autocomplete="off" maxlength="80" required>
+  <p>Coletamos o nome ou apelido informado, respostas, notas, coment&#225;rios e m&#233;tricas de uso (tempo, toques e quantidade de telas visitadas). Os dados ficam salvos localmente neste navegador e, ao concluir as tarefas, s&#227;o enviados automaticamente &#224; planilha Google vinculada ao projeto para an&#225;lise acad&#234;mica de usabilidade. Recomendamos usar um apelido em vez do nome completo. N&#227;o informe dados sens&#237;veis nos coment&#225;rios. N&#227;o coletamos senha nem dados de acesso ao SIGAA.</p>
+  <label for="nm" style="font-weight:600;display:block;margin:12px 0 6px">Nome ou apelido (obrigat&#243;rio)</label><input id="nm" type="text" autocomplete="nickname" maxlength="80" required>
   <label class="tog" style="align-items:flex-start;margin-top:14px;line-height:1.45"><input id="consent" type="checkbox" required style="margin-top:3px"><span>Li as informa&#231;&#245;es acima e concordo com a coleta e o envio desses dados para a planilha do projeto, conforme descrito. Sei que posso interromper minha participa&#231;&#227;o fechando a p&#225;gina; se j&#225; tiver conclu&#237;do e enviado o teste, posso pedir a remo&#231;&#227;o dos meus dados ao grupo.</span></label>
-  <p class="muted" style="font-size:12px">Para participar, informe o c&#243;digo recebido e marque o consentimento. Se n&#227;o concordar, feche esta p&#225;gina sem iniciar o teste.</p>
+  <p class="muted" style="font-size:12px">Informe um nome ou apelido e marque o consentimento. Se n&#227;o concordar, feche esta p&#225;gina sem iniciar o teste.</p>
   <div class="row" style="margin-top:16px"><button class="btn pri" id="go1" disabled>Concordar e come&#231;ar</button><button class="btn" id="go2" disabled>Concordar e s&#243; explorar</button></div></div></div>`;
   const accept=mode=>{
-    const participantCode=$('participant-code').value.trim(),consent=$('consent');
-    if(!participantCode){$('participant-code').setCustomValidity('Informe o código de participante fornecido pelo grupo.');$('participant-code').reportValidity();return}
-    $('participant-code').setCustomValidity('');
+    const name=$('nm').value.trim(),consent=$('consent');
+    if(!name){$('nm').setCustomValidity('Informe um nome ou apelido para continuar.');$('nm').reportValidity();return}
+    $('nm').setCustomValidity('');
     if(!consent.checked){consent.reportValidity();return}
-    const T=S.test;T.participantCode=participantCode;T.consentAt=new Date().toISOString();T.consentVersion='2026-11-21-v2';T.log=[];T.sessionId='';T.sent=false;T.sending=false;persist();$('modal').innerHTML='';
+    const T=S.test;T.name=name;T.consentAt=new Date().toISOString();T.consentVersion='2026-11-21-v3';T.log=[];T.sessionId='';T.sent=false;T.sending=false;persist();$('modal').innerHTML='';
     if(mode==='tasks')startTask(0);else{T.mode='free';updateSide()}
   };
-  const updateConsentButtons=()=>{const valid=$('participant-code').value.trim().length>0&&$('consent').checked;$('go1').disabled=!valid;$('go2').disabled=!valid};
-  $('participant-code').addEventListener('input',()=>{$('participant-code').setCustomValidity('');updateConsentButtons()});$('consent').addEventListener('change',updateConsentButtons);
+  const updateConsentButtons=()=>{const valid=$('nm').value.trim().length>0&&$('consent').checked;$('go1').disabled=!valid;$('go2').disabled=!valid};
+  $('nm').addEventListener('input',()=>{$('nm').setCustomValidity('');updateConsentButtons()});$('consent').addEventListener('change',updateConsentButtons);
   $('go1').onclick=()=>accept('tasks');$('go2').onclick=()=>accept('explore');
 }
 async function sendResultsToSheet(){
@@ -309,7 +309,7 @@ async function sendResultsToSheet(){
   if(T.sending||!T.log.length)return;
   T.sending=true;if(retry)retry.hidden=true;status.textContent='Enviando automaticamente as respostas...';
   try{
-    await fetch(endpoint,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({sessionId:T.sessionId,participantCode:T.participantCode,consentAt:T.consentAt,consentVersion:T.consentVersion,tasks:T.log})});
+    await fetch(endpoint,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({sessionId:T.sessionId,name:T.name,consentAt:T.consentAt,consentVersion:T.consentVersion,tasks:T.log})});
     T.sent=true;T.sending=false;persist();
     status.textContent='Solicita\u00e7\u00e3o enviada. Confira a planilha; o navegador n\u00e3o consegue confirmar a grava\u00e7\u00e3o.';
   }catch(error){
@@ -318,7 +318,7 @@ async function sendResultsToSheet(){
 }
 function showResults(){
   const T=S.test,rows=T.log.map(r=>`<tr><td><b>${r.id}</b></td><td>${esc(r.resultado)}</td><td>${r.segundos}s</td><td>${r.toques} (${r.toquesSemResposta})</td><td>${r.telas}</td><td>${r.nota||'-'}</td></tr>${r.comentario||r.resposta?`<tr><td></td><td colspan="5" class="muted">${r.resposta?`Respondeu ${esc(r.resposta)} faltas. `:''}${esc(r.comentario)}</td></tr>`:''}`).join('');
-  $('modal').innerHTML=`<div class="modal"><div class="card"><h2>Resultados</h2>
+  $('modal').innerHTML=`<div class="modal"><div class="card"><h2>Resultados</h2><p class="muted">Participante: ${esc(T.name||'(sem nome)')}</p>
   ${T.log.length?`<div class="scroll-x"><table><thead><tr><th>Tarefa</th><th>Resultado</th><th>Tempo</th><th>Toques (sem resposta)</th><th>Telas</th><th>Nota</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p>Nenhuma tarefa registrada ainda.</p>'}
   <p class="muted" style="font-size:13px">“Toques sem resposta” são toques em áreas que não fazem nada. Eles indicam onde o usuário esperava um controle.</p>
   <p class="muted" style="font-size:12px">Com seu consentimento, os dados listados acima s&#227;o enviados automaticamente ao concluir as tarefas.</p>
