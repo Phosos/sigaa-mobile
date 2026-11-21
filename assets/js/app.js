@@ -30,7 +30,7 @@ const ICO={
 /* ===== estado ===== */
 const S={view:'home',arg:null,stack:[],tab:'resumo',sem:'2026.2',query:'',minutes:25,sheet:false,toast:'',loading:false,error:null,
   sim:{slow:false,err:false},draft:'',savedDraft:false,
-  test:{mode:'intro',name:'',sessionId:'',sent:false,idx:-1,t0:0,taps:0,miss:0,views:new Set(),log:[],cur:null,done:false,rate:0,comment:'',answer:'',stage:'task'},
+  test:{mode:'intro',name:'',consentAt:'',consentVersion:'2026-11-21-v1',sessionId:'',sent:false,sending:false,idx:-1,t0:0,taps:0,miss:0,views:new Set(),log:[],cur:null,done:false,rate:0,comment:'',answer:'',stage:'task'},
   timers:{}};
 const TASKS=[
  {id:'T1',text:'Descubra quantas faltas você tem em Redes de Computadores.',ask:true,start:()=>go('home',null,true)},
@@ -209,7 +209,7 @@ $('screen').addEventListener('input',e=>{
 /* ===== teste de usabilidade ===== */
 function curTask(){return TASKS[S.test.idx]}
 function startTask(i){
-  const T=S.test;if(i===0){T.sessionId=`${Date.now()}-${Math.random().toString(36).slice(2)}`;T.sent=false}T.mode='task';T.idx=i;T.stage='task';T.t0=Date.now();T.taps=0;T.miss=0;T.views=new Set(['home']);T.rate=0;T.comment='';T.answer='';T.cur={outcome:null};
+  const T=S.test;if(i===0){T.sessionId=`${Date.now()}-${Math.random().toString(36).slice(2)}`;T.sent=false;T.sending=false}T.mode='task';T.idx=i;T.stage='task';T.t0=Date.now();T.taps=0;T.miss=0;T.views=new Set(['home']);T.rate=0;T.comment='';T.answer='';T.cur={outcome:null};
   S.sheet=false;S.toast='';TASKS[i].start();clearInterval(S.timers.tick);S.timers.tick=setInterval(tick,1000);updateSide();
 }
 function tick(){const el=$('tm');if(!el||S.test.mode!=='task')return;const s=Math.floor((Date.now()-S.test.t0)/1000);el.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');el.style.color=s>120?'var(--bad-fg)':'';}
@@ -233,7 +233,7 @@ function saveTask(){
   if(T.idx+1<TASKS.length)startTask(T.idx+1);else{T.mode='done';clearInterval(S.timers.tick);S.sheet=false;go('home',null,true)}
   updateSide();
 }
-function persist(){try{localStorage.setItem('sigaa-proto-resultados',JSON.stringify({nome:S.test.name,sessionId:S.test.sessionId,log:S.test.log,sent:S.test.sent}))}catch(_){}}
+function persist(){try{localStorage.setItem('sigaa-proto-resultados',JSON.stringify({nome:S.test.name,consentAt:S.test.consentAt,consentVersion:S.test.consentVersion,sessionId:S.test.sessionId,log:S.test.log,sent:S.test.sent}))}catch(_){}}
 function summaryText(){
   const T=S.test;
   let s=`SIGAA Mobile · teste de usabilidade\nParticipante: ${T.name||'(sem nome)'}\nData: ${new Date().toLocaleString('pt-BR')}\n\n`;
@@ -269,7 +269,7 @@ $('side').addEventListener('click',e=>{
    case'give':finish('desistiu');break;
    case'ans':{const v=($('ans').value||'').trim();T.answer=v;T.cur.outcome=v==='3'?'sucesso':'resposta incorreta';T.stage='rate';updateSide();break}
    case'star':T.rate=+b.dataset.n;T.comment=$('cm')?$('cm').value:T.comment;updateSide();break;
-   case'next':T.comment=$('cm')?$('cm').value:'';saveTask();if(T.mode==='done')showResults();break;
+   case'next':T.comment=$('cm')?$('cm').value:'';saveTask();if(T.mode==='done'){showResults();sendResultsToSheet()}break;
    case'results':showResults();break;
    case'restart':T.log=[];T.name=T.name;startTask(0);break;
    case'start':T.log=[];startTask(0);break;
@@ -281,39 +281,50 @@ $('side').addEventListener('input',e=>{if(e.target.id==='cm')S.test.comment=e.ta
 
 function showIntro(){
   $('modal').innerHTML=`<div class="modal"><div class="card"><div class="brand" style="margin-bottom:12px"><div class="logo">S</div><b>SIGAA Mobile</b></div><h2>Teste de usabilidade</h2>
-  <p>Este é um protótipo desenvolvido para a disciplina de IHC (Interação Humano-Computador), por um grupo de Sistemas de Informação. O objetivo é melhorar a interface de módulos do SIGAA, priorizados com base em questionários respondidos por quase 50 pessoas, que apontaram estes entre os módulos que mais desagradaram na plataforma oficial. Os dados são fictícios. Você fará 4 tarefas curtas, de cerca de 3 minutos cada. Estamos testando o protótipo, não você.</p>
-  <p>Integrantes: Gustavo Gevú, Lucas Francisco, Nicolas Moreno e Pedro Costa.</p>
-  <p>Se puder, pense em voz alta. Ao fim de cada tarefa você dá uma nota de 1 a 5 para a facilidade. Os tempos e toques ficam só neste aparelho e você escolhe se envia o resumo.</p>
-  <label for="nm" style="font-weight:600;display:block;margin:12px 0 6px">Seu nome ou apelido (opcional)</label><input id="nm" type="text" autocomplete="off">
-  <div class="row" style="margin-top:16px"><button class="btn pri" id="go1">Começar o teste</button><button class="btn" id="go2">Só explorar</button></div></div></div>`;
-  $('go1').onclick=()=>{S.test.name=$('nm').value.trim();$('modal').innerHTML='';S.test.log=[];startTask(0)};
-  $('go2').onclick=()=>{S.test.name=$('nm').value.trim();$('modal').innerHTML='';S.test.mode='free';updateSide()};
+  <p>Este prot&#243;tipo foi desenvolvido para a disciplina de IHC (Intera&#231;&#227;o Humano-Computador), por um grupo de Sistemas de Informa&#231;&#227;o, para explorar melhorias na interface de m&#243;dulos do SIGAA. As telas e informa&#231;&#245;es exibidas s&#227;o fict&#237;cias; as respostas e m&#233;tricas deste teste s&#227;o reais. Voc&#234; far&#225; 4 tarefas curtas. Estamos avaliando o prot&#243;tipo, n&#227;o voc&#234;.</p>
+  <p>Integrantes: Gustavo Gev&#250;, Lucas Francisco, Nicolas Moreno e Pedro Costa.</p>
+  <p>Coletamos seu nome ou apelido, respostas, notas, coment&#225;rios e m&#233;tricas de uso (tempo, toques e quantidade de telas visitadas). Os dados tamb&eacute;m ficam salvos localmente neste navegador e, ao concluir as tarefas, s&#227;o enviados automaticamente &#224; planilha Google vinculada ao projeto para an&#225;lise acad&#234;mica de usabilidade. N&#227;o informe dados sens&#237;veis nos coment&#225;rios. N&#227;o coletamos senha nem dados de acesso ao SIGAA.</p>
+  <label for="nm" style="font-weight:600;display:block;margin:12px 0 6px">Nome ou apelido (obrigat&#243;rio)</label><input id="nm" type="text" autocomplete="nickname" maxlength="80" required>
+  <label class="tog" style="align-items:flex-start;margin-top:14px;line-height:1.45"><input id="consent" type="checkbox" required style="margin-top:3px"><span>Li as informa&#231;&#245;es acima e concordo com a coleta e o envio desses dados para a planilha do projeto, conforme descrito. Sei que posso interromper minha participa&#231;&#227;o fechando a p&#225;gina; se j&#225; tiver conclu&#237;do e enviado o teste, posso pedir a remo&#231;&#227;o dos meus dados ao grupo.</span></label>
+  <p class="muted" style="font-size:12px">Para participar, informe um nome ou apelido e marque o consentimento. Se n&#227;o concordar, feche esta p&#225;gina sem iniciar o teste.</p>
+  <div class="row" style="margin-top:16px"><button class="btn pri" id="go1" disabled>Concordar e come&#231;ar</button><button class="btn" id="go2" disabled>Concordar e s&#243; explorar</button></div></div></div>`;
+  const accept=mode=>{
+    const name=$('nm').value.trim(),consent=$('consent');
+    if(!name){$('nm').setCustomValidity('Informe um nome ou apelido para continuar.');$('nm').reportValidity();return}
+    $('nm').setCustomValidity('');
+    if(!consent.checked){consent.reportValidity();return}
+    const T=S.test;T.name=name;T.consentAt=new Date().toISOString();T.consentVersion='2026-11-21-v1';T.log=[];T.sessionId='';T.sent=false;T.sending=false;persist();$('modal').innerHTML='';
+    if(mode==='tasks')startTask(0);else{T.mode='free';updateSide()}
+  };
+  const updateConsentButtons=()=>{const valid=$('nm').value.trim().length>0&&$('consent').checked;$('go1').disabled=!valid;$('go2').disabled=!valid};
+  $('nm').addEventListener('input',()=>{$('nm').setCustomValidity('');updateConsentButtons()});$('consent').addEventListener('change',updateConsentButtons);
+  $('go1').onclick=()=>accept('tasks');$('go2').onclick=()=>accept('explore');
 }
 async function sendResultsToSheet(){
   const endpoint=String(window.SIGAA_SHEETS_ENDPOINT||'').trim();
-  const status=$('sheet-status'),button=$('send-sheet');
-  if(!endpoint){status.textContent='Integra\u00e7\u00e3o ainda n\u00e3o configurada. Veja as instru\u00e7\u00f5es do README.';return}
-  if(S.test.sent){status.textContent='Este teste j\u00e1 foi enviado.';return}
-  if(!S.test.log.length){status.textContent='N\u00e3o h\u00e1 respostas para enviar.';return}
-  button.disabled=true;status.textContent='Enviando respostas...';
+  const T=S.test,status=$('sheet-status'),retry=$('retry-sheet');
+  if(!status)return;
+  if(!endpoint){status.textContent='Integra\u00e7\u00e3o n\u00e3o configurada. Os resultados continuam neste navegador.';return}
+  if(T.sent){status.textContent='Solicita\u00e7\u00e3o enviada. Confira a planilha; o navegador n\u00e3o consegue confirmar a grava\u00e7\u00e3o.';return}
+  if(T.sending||!T.log.length)return;
+  T.sending=true;if(retry)retry.hidden=true;status.textContent='Enviando automaticamente as respostas...';
   try{
-    await fetch(endpoint,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({sessionId:S.test.sessionId,name:S.test.name,tasks:S.test.log})});
-    S.test.sent=true;persist();button.textContent='Envio solicitado';
+    await fetch(endpoint,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({sessionId:T.sessionId,name:T.name,consentAt:T.consentAt,consentVersion:T.consentVersion,tasks:T.log})});
+    T.sent=true;T.sending=false;persist();
     status.textContent='Solicita\u00e7\u00e3o enviada. Confira a planilha; o navegador n\u00e3o consegue confirmar a grava\u00e7\u00e3o.';
   }catch(error){
-    button.disabled=false;status.textContent='N\u00e3o foi poss\u00edvel enviar. Verifique a conex\u00e3o e tente novamente.';
+    T.sending=false;status.textContent='N\u00e3o foi poss\u00edvel enviar automaticamente. Verifique a conex\u00e3o e tente novamente.';if(retry)retry.hidden=false;
   }
 }
-
 function showResults(){
   const T=S.test,rows=T.log.map(r=>`<tr><td><b>${r.id}</b></td><td>${esc(r.resultado)}</td><td>${r.segundos}s</td><td>${r.toques} (${r.toquesSemResposta})</td><td>${r.telas}</td><td>${r.nota||'-'}</td></tr>${r.comentario||r.resposta?`<tr><td></td><td colspan="5" class="muted">${r.resposta?`Respondeu ${esc(r.resposta)} faltas. `:''}${esc(r.comentario)}</td></tr>`:''}`).join('');
   $('modal').innerHTML=`<div class="modal"><div class="card"><h2>Resultados</h2><p class="muted">Participante: ${esc(T.name||'(sem nome)')}</p>
   ${T.log.length?`<div class="scroll-x"><table><thead><tr><th>Tarefa</th><th>Resultado</th><th>Tempo</th><th>Toques (sem resposta)</th><th>Telas</th><th>Nota</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p>Nenhuma tarefa registrada ainda.</p>'}
   <p class="muted" style="font-size:13px">“Toques sem resposta” são toques em áreas que não fazem nada. Eles indicam onde o usuário esperava um controle.</p>
-  <p class="muted" style="font-size:12px">Ao enviar, o nome (se informado), as respostas, notas, coment\u00e1rios, tempos e toques deste teste ser\u00e3o gravados na planilha do grupo.</p>
-  <div class="row"><button class="btn pri" id="send-sheet" ${T.sent?'disabled':''}>${T.sent?'Envio solicitado':'Enviar para planilha'}</button><button class="btn" id="cp">Copiar resumo</button><button class="btn" id="cl">Fechar</button></div><p id="sheet-status" class="muted" role="status" style="font-size:13px;min-height:18px">${T.sent?'Envio solicitado. Confira a planilha.':''}</p><p id="cpm" class="muted" style="font-size:13px;min-height:18px"></p>
+  <p class="muted" style="font-size:12px">Com seu consentimento, os dados listados acima s&#227;o enviados automaticamente ao concluir as tarefas.</p>
+  <div class="row"><button class="btn" id="retry-sheet" hidden>Tentar enviar novamente</button><button class="btn" id="cp">Copiar resumo</button><button class="btn" id="cl">Fechar</button></div><p id="sheet-status" class="muted" role="status" style="font-size:13px;min-height:18px">${T.sent?'Solicita\u00e7\u00e3o enviada. Confira a planilha.':T.mode==='done'?'Enviando automaticamente as respostas...':'O envio autom\u00e1tico acontece ao concluir as tarefas.'}</p><p id="cpm" class="muted" style="font-size:13px;min-height:18px"></p>
   <textarea id="tx" rows="6" readonly style="font-size:12px">${esc(summaryText())}</textarea></div></div>`;
-  $('send-sheet').onclick=sendResultsToSheet;
+  $('retry-sheet').onclick=sendResultsToSheet;
   $('cl').onclick=()=>{$('modal').innerHTML=''};
   $('cp').onclick=()=>{const t=$('tx');t.select();let ok=false;try{navigator.clipboard.writeText(t.value).then(()=>{$('cpm').textContent='Resumo copiado. Envie ao grupo.'},()=>{$('cpm').textContent='Selecione o texto abaixo e copie.'});ok=true}catch(_){}if(!ok)$('cpm').textContent='Selecione o texto abaixo e copie.'};
 }

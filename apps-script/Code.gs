@@ -1,15 +1,16 @@
 const SPREADSHEET_ID = '1-YiZe5PvS5aHGzGG9yfcX4GV8bUO3qbeZMQbRYrTwzA';
 const SHEET_NAME = 'Respostas';
+const CONSENT_VERSION = '2026-11-21-v1';
 const HEADERS = [
   'session_id', 'enviado_em', 'participante', 'tarefa_id', 'tarefa',
   'resultado', 'segundos', 'toques', 'toques_sem_resposta', 'telas',
-  'nota_facilidade', 'resposta', 'comentario'
+  'nota_facilidade', 'resposta', 'comentario', 'consent_at', 'consent_version'
 ];
 
 function doPost(e) {
   try {
     const payload = JSON.parse(e && e.postData ? e.postData.contents : '{}');
-    if (!payload.sessionId || !Array.isArray(payload.tasks) || payload.tasks.length === 0 || payload.tasks.length > 20) {
+    if (!payload.sessionId || !payload.consentAt || isNaN(Date.parse(payload.consentAt)) || payload.consentVersion !== CONSENT_VERSION || !Array.isArray(payload.tasks) || payload.tasks.length === 0 || payload.tasks.length > 20) {
       return json_({ ok: false, error: 'invalid_payload' });
     }
 
@@ -19,6 +20,12 @@ function doPost(e) {
       const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
       const sheet = spreadsheet.getSheetByName(SHEET_NAME) || spreadsheet.insertSheet(SHEET_NAME);
       if (sheet.getLastRow() === 0) sheet.appendRow(HEADERS);
+      else {
+        const existingHeaders = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getDisplayValues()[0];
+        HEADERS.forEach(header => {
+          if (!existingHeaders.includes(header)) sheet.getRange(1, sheet.getLastColumn() + 1).setValue(header);
+        });
+      }
 
       const values = sheet.getDataRange().getValues();
       if (values.slice(1).some(row => String(row[0]) === String(payload.sessionId))) {
@@ -33,7 +40,8 @@ function doPost(e) {
         safeText_(task.resultado, 100), safeNumber_(task.segundos),
         safeNumber_(task.toques), safeNumber_(task.toquesSemResposta),
         safeNumber_(task.telas), safeNumber_(task.nota),
-        safeText_(task.resposta, 200), safeText_(task.comentario, 2000)
+        safeText_(task.resposta, 200), safeText_(task.comentario, 2000),
+        safeText_(payload.consentAt, 40), safeText_(payload.consentVersion, 30)
       ]);
       sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, HEADERS.length).setValues(rows);
       return json_({ ok: true, rows: rows.length });
