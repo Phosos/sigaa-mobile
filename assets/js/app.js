@@ -244,7 +244,7 @@ function esc2(x){return esc(x)}
 function updateSide(){
   const T=S.test,side=$('side');
   const brand=`<div class="brand"><div class="logo">S</div><b>SIGAA Mobile</b></div>`;
-  const desk=`<div class="card desk"><h3>Sobre este protótipo</h3><div class="muted" style="line-height:1.5">Versão de baixa fidelidade, com dados fictícios, usada em testes de usabilidade (IC824 · UFRRJ). Os toques e os tempos ficam só neste aparelho.</div></div>`;
+  const desk=`<div class="card desk"><h3>Projeto de IHC</h3><div class="muted" style="line-height:1.5">Protótipo acadêmico para explorar melhorias na interface de módulos do SIGAA. Questionários respondidos por quase 50 pessoas apontaram estes entre os módulos que mais desagradaram na plataforma oficial. Dados e fluxos são fictícios.</div></div>`;
   let main='';
   if(T.mode==='task'){
     const t=curTask();
@@ -281,7 +281,7 @@ $('side').addEventListener('input',e=>{if(e.target.id==='cm')S.test.comment=e.ta
 
 function showIntro(){
   $('modal').innerHTML=`<div class="modal"><div class="card"><div class="brand" style="margin-bottom:12px"><div class="logo">S</div><b>SIGAA Mobile</b></div><h2>Teste de usabilidade</h2>
-  <p>Este é um protótipo de baixa fidelidade de uma versão para celular do SIGAA, com dados fictícios. Você fará 4 tarefas curtas, de cerca de 3 minutos cada. Estamos testando o protótipo, não você.</p>
+  <p>Este é um protótipo desenvolvido para a disciplina de IHC, com foco em melhorar a interface de módulos do SIGAA. Questionários respondidos por quase 50 pessoas apontaram estes entre os módulos que mais desagradaram na plataforma oficial. Os dados são fictícios. Você fará 4 tarefas curtas, de cerca de 3 minutos cada. Estamos testando o protótipo, não você.</p>
   <p>Se puder, pense em voz alta. Ao fim de cada tarefa você dá uma nota de 1 a 5 para a facilidade. Os tempos e toques ficam só neste aparelho e você escolhe se envia o resumo.</p>
   <label for="nm" style="font-weight:600;display:block;margin:12px 0 6px">Seu nome ou apelido (opcional)</label><input id="nm" type="text" autocomplete="off">
   <div class="row" style="margin-top:16px"><button class="btn pri" id="go1">Começar o teste</button><button class="btn" id="go2">Só explorar</button></div></div></div>`;

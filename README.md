@@ -1,6 +1,12 @@
 # SIGAA Mobile
 
-Protótipo navegável de uma experiência mobile para o SIGAA. A interface inclui telas de resumo, turmas, notas e serviços, além de um painel de facilitação para demonstração.
+Protótipo acadêmico desenvolvido para a disciplina de IHC, com foco em melhorar a interface de módulos da plataforma SIGAA.
+
+## Contexto
+
+A escolha dos módulos foi orientada por questionários respondidos por quase 50 pessoas. Os participantes apontaram estes entre os módulos que mais desagradaram na plataforma oficial. O protótipo explora possibilidades de reorganização e melhoria da experiência nesses fluxos.
+
+A interface é demonstrativa: dados, tarefas e interações são fictícios e não se conectam ao SIGAA oficial.
 
 ## Como abrir
 
