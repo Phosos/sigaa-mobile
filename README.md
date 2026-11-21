@@ -30,7 +30,7 @@ Abra `index.html` em um navegador moderno. O protótipo roda localmente e não e
 A integração usa Google Apps Script como ponte entre a página estática e a planilha. As respostas só são enviadas quando a pessoa clica em **Enviar para planilha** na tela de resultados.
 
 1. Crie uma planilha Google e abra **Extensões > Apps Script**.
-2. Copie `apps-script/Code.gs` para o editor. Substitua `COLE_AQUI_O_ID_DA_PLANILHA` pelo ID entre `/d/` e `/edit` na URL da planilha.
+2. Copie `apps-script/Code.gs` para o editor. O ID da planilha informada ja esta preenchido no script.
 3. Implante o script como **App da Web**, executando como você. Para participantes sem login, o acesso precisa aceitar qualquer pessoa. Isso permite que qualquer pessoa com a URL envie dados; não torna a planilha pública para leitura, mas pode receber envios indevidos. Colete apenas os dados necessários e monitore a planilha.
 4. Copie a URL implantada, terminada em `/exec`, para `assets/js/sheets-config.js` em `SIGAA_SHEETS_ENDPOINT`.
 5. Publique a atualização da página. Cada tarefa será uma linha da aba `Respostas`; o `session_id` agrupa as tarefas da mesma sessão.

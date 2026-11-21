@@ -1,4 +1,4 @@
-const SPREADSHEET_ID = 'COLE_AQUI_O_ID_DA_PLANILHA';
+const SPREADSHEET_ID = '1-YiZe5PvS5aHGzGG9yfcX4GV8bUO3qbeZMQbRYrTwzA';
 const SHEET_NAME = 'Respostas';
 const HEADERS = [
   'session_id', 'enviado_em', 'participante', 'tarefa_id', 'tarefa',
