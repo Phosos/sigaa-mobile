@@ -27,12 +27,12 @@ Abra `index.html` em um navegador moderno. O protótipo roda localmente e não e
 
 ## Envio das respostas para Google Sheets
 
-A integração usa Google Apps Script como ponte entre a página estática e a planilha. A pessoa informa nome ou apelido e d&aacute; consentimento expl&iacute;cito no in&iacute;cio. As respostas s&atilde;o enviadas automaticamente ao concluir as tarefas; em caso de falha de conex&atilde;o, a tela oferece uma op&ccedil;&atilde;o para tentar novamente.
+A integração usa Google Apps Script como ponte entre a página estática e a planilha. A pessoa informa um código aleatório de uso único, fornecido pelo grupo, e dá consentimento explícito no início. O Apps Script guarda apenas o hash do código e rejeita seu segundo uso. As respostas são enviadas automaticamente ao concluir as tarefas; em caso de falha de conexão, a tela oferece uma opção para tentar novamente. O código é um pseudônimo, não uma garantia de anonimato; não crie uma lista associando códigos a nomes. Distribua códigos imprevisíveis e não reutilize códigos já entregues.
 
 1. Crie uma planilha Google e abra **Extensões > Apps Script**.
 2. Copie `apps-script/Code.gs` para o editor. O ID da planilha informada ja esta preenchido no script.
 3. Implante o script como **App da Web**, executando como você. Para participantes sem login, o acesso precisa aceitar qualquer pessoa. Isso permite que qualquer pessoa com a URL envie dados; não torna a planilha pública para leitura, mas pode receber envios indevidos. Colete apenas os dados necessários e monitore a planilha.
 4. Copie a URL implantada, terminada em `/exec`, para `assets/js/sheets-config.js` em `SIGAA_SHEETS_ENDPOINT`.
-5. Publique a atualização da página. Cada tarefa será uma linha da aba `Respostas`; o `session_id` agrupa as tarefas da mesma sessão. As colunas `consent_at` e `consent_version` registram quando e qual versão do consentimento foi aceita. Para uma implantação já existente, atualize `Code.gs` e publique uma nova versão em **Implantar > Gerenciar implantações > Editar > Nova versão > Implantar**.
+5. Publique a atualização da página. Cada tarefa será uma linha da aba `Respostas`; o `session_id` agrupa as tarefas da mesma sessão. As colunas `consent_at` e `consent_version` registram quando e qual versão do consentimento foi aceita; `participant_code_hash` bloqueia o uso repetido do mesmo código sem salvar o código em si. Para uma implantação já existente, atualize `Code.gs` e publique uma nova versão em **Implantar > Gerenciar implantações > Editar > Nova versão > Implantar**. O grupo precisa fornecer códigos únicos aos participantes antes do teste.
 
 O navegador não consegue ler a confirmação de resposta do Apps Script neste modo. A tela informa que a solicitação foi feita, mas é necessário conferir a planilha para confirmar a gravação. Sem URL configurada, os resultados continuam apenas no armazenamento local do navegador e podem ser copiados manualmente.
