@@ -1,12 +1,11 @@
 # SIGAA Mobile
 
-Protótipo acadêmico desenvolvido por um grupo de Sistemas de Informação para a disciplina de IHC (Interação Humano-Computador). O projeto explora melhorias na interface de módulos da plataforma SIGAA.
+Protótipo acadêmico desenvolvido por um grupo de Sistemas de Informação para a disciplina de IHC (Interação Humano-Computador), IC824, UFRRJ. Explora melhorias na interface de módulos do SIGAA. Dados, tarefas e interações são fictícios e não se conectam ao SIGAA oficial.
 
-## Contexto
+## Versões
 
-A escolha dos módulos foi orientada por questionários respondidos por quase 50 pessoas. Os participantes apontaram estes entre os módulos que mais desagradaram na plataforma oficial. O protótipo explora possibilidades de reorganização e melhoria da experiência nesses fluxos.
-
-A interface é demonstrativa: dados, tarefas e interações são fictícios e não se conectam ao SIGAA oficial.
+- **v2** (`index.html`, esta pasta): redesign a partir dos testes do Seminário 3. O que mudou e por quê está em [REDESIGN.md](REDESIGN.md).
+- **v1** (`v1/index.html`): protótipo testado com 26 participantes, mantido para o comparativo.
 
 ## Integrantes
 
@@ -17,22 +16,23 @@ A interface é demonstrativa: dados, tarefas e interações são fictícios e n�
 
 ## Como abrir
 
-Abra `index.html` em um navegador moderno. O protótipo roda localmente e não exige instalação ou etapa de build. A fonte Inter é carregada do Google Fonts quando há conexão com a internet.
+Abra `index.html` (v2) ou `v1/index.html` em um navegador moderno. Não exige instalação nem build. A fonte Inter vem do Google Fonts quando há conexão.
 
 ## Estrutura
 
-- `index.html`: estrutura da aplicação e ponto de entrada.
-- `assets/css/app.css`: estilos e layout responsivo.
-- `assets/js/app.js`: navegação, estado e interações do protótipo.
+- `index.html`, `assets/css/app.css`, `assets/js/app.js`: a v2.
+- `assets/js/sheets-config.js`: URL do Apps Script, usada pela v2. A v1 tem a sua cópia em `v1/assets/js/`.
+- `v1/`: a versão testada.
+- `apps-script/Code.gs`: recebe as respostas e grava na planilha.
 
 ## Envio das respostas para Google Sheets
 
-A integração usa Google Apps Script como ponte entre a página estática e a planilha. A pessoa informa nome ou apelido e dá consentimento explícito no início. As respostas são enviadas automaticamente ao concluir as tarefas; em caso de falha de conexão, a tela oferece uma opção para tentar novamente. Recomenda-se usar apelidos em vez de nomes completos. Como a planilha armazena esse identificador junto às respostas, restrinja o acesso e não publique os dados brutos.
+Funciona como antes: o participante informa nome ou apelido e dá consentimento; as respostas vão ao concluir as tarefas, com opção de tentar de novo em caso de falha. Use apelidos, restrinja o acesso à planilha e não publique os dados brutos.
 
-1. Crie uma planilha Google e abra **Extensões > Apps Script**.
-2. Copie `apps-script/Code.gs` para o editor. O ID da planilha informada ja esta preenchido no script.
-3. Implante o script como **App da Web**, executando como você. Para participantes sem login, o acesso precisa aceitar qualquer pessoa. Isso permite que qualquer pessoa com a URL envie dados; não torna a planilha pública para leitura, mas pode receber envios indevidos. Colete apenas os dados necessários e monitore a planilha.
-4. Copie a URL implantada, terminada em `/exec`, para `assets/js/sheets-config.js` em `SIGAA_SHEETS_ENDPOINT`.
-5. Publique a atualização da página. Cada tarefa será uma linha da aba `Respostas`; o `session_id` agrupa as tarefas da mesma sessão. As colunas `consent_at` e `consent_version` registram quando e qual versão do consentimento foi aceita. Para uma implantação já existente, atualize `Code.gs` e publique uma nova versão em **Implantar > Gerenciar implantações > Editar > Nova versão > Implantar**.
+1. Atualize o `apps-script/Code.gs` no editor do Apps Script. A novidade é a coluna `versao`, adicionada ao final das colunas existentes.
+2. Em **Implantar > Gerenciar implantações > Editar > Nova versão > Implantar**, publique a atualização. Sem isso, a coluna `versao` não é preenchida; os envios continuam funcionando.
+3. A URL `/exec` já está em `assets/js/sheets-config.js` (e em `v1/assets/js/`).
 
-O navegador não consegue ler a confirmação de resposta do Apps Script neste modo. A tela informa que a solicitação foi feita, mas é necessário conferir a planilha para confirmar a gravação. Sem URL configurada, os resultados continuam apenas no armazenamento local do navegador e podem ser copiados manualmente.
+O navegador não lê a confirmação do Apps Script. Confira a planilha para ter certeza da gravação. Sem URL configurada, os resultados ficam no navegador e podem ser copiados.
+
+A v1 grava com `versao = v1` e a v2 com `versao = v2`. Use essa coluna para separar as duas rodadas na análise.

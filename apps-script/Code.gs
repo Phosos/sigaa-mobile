@@ -4,7 +4,7 @@ const CONSENT_VERSION = '2026-11-21-v3';
 const HEADERS = [
   'session_id', 'enviado_em', 'participante', 'tarefa_id', 'tarefa',
   'resultado', 'segundos', 'toques', 'toques_sem_resposta', 'telas',
-  'nota_facilidade', 'resposta', 'comentario', 'consent_at', 'consent_version'
+  'nota_facilidade', 'resposta', 'comentario', 'consent_at', 'consent_version', 'versao'
 ];
 
 function doPost(e) {
@@ -40,7 +40,8 @@ function doPost(e) {
         safeNumber_(task.toques), safeNumber_(task.toquesSemResposta),
         safeNumber_(task.telas), safeNumber_(task.nota),
         safeText_(task.resposta, 200), safeText_(task.comentario, 2000),
-        safeText_(payload.consentAt, 40), safeText_(payload.consentVersion, 30)
+        safeText_(payload.consentAt, 40), safeText_(payload.consentVersion, 30),
+        safeText_(payload.versao || 'v1', 10)
       ]);
       sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, HEADERS.length).setValues(rows);
       return json_({ ok: true, rows: rows.length });
